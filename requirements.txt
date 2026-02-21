@@ -1,0 +1,21 @@
+# Core dependencies
+tensorflow>=2.13.0
+medmnist==2.1.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+opencv-python>=4.8.0
+
+# Metrics and data processing
+scikit-learn>=1.2.0
+pandas>=2.0.0
+
+# Utilities
+tqdm>=4.65.0
+Pillow>=9.5.0
+
+# For Colab
+ipython>=8.10.0

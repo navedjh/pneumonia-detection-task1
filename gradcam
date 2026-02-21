@@ -1,0 +1,119 @@
+"""Grad-CAM visualization module"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras import models as keras_models
+import cv2
+import os
+
+class GradCAM:
+    def __init__(self, model):
+        self.model = model
+        self.last_conv_layer = self._find_last_conv_layer()
+        self.grad_model = keras_models.Model(
+            [model.inputs],
+            [model.get_layer(self.last_conv_layer).output, model.output]
+        )
+    
+    def _find_last_conv_layer(self):
+        for layer in reversed(self.model.layers):
+            if isinstance(layer, tf.keras.layers.Conv2D):
+                return layer.name
+        raise ValueError("No Conv2D layer found")
+    
+    def generate(self, image, class_idx=None):
+        """Generate Grad-CAM heatmap"""
+        if len(image.shape) == 3:
+            img_array = np.expand_dims(image, axis=0)
+        else:
+            img_array = image
+        
+        # Get prediction
+        preds = self.model.predict(img_array, verbose=0)[0]
+        class_idx = np.argmax(preds) if class_idx is None else class_idx
+        confidence = preds[class_idx]
+        
+        # Compute gradients
+        with tf.GradientTape() as tape:
+            conv_outputs, predictions = self.grad_model(img_array)
+            loss = predictions[:, class_idx]
+        
+        grads = tape.gradient(loss, conv_outputs)[0]
+        weights = tf.reduce_mean(grads, axis=(0, 1))
+        
+        # Weighted combination
+        cam = tf.reduce_sum(tf.multiply(weights, conv_outputs[0]), axis=-1)
+        cam = tf.nn.relu(cam)
+        cam = cam / (tf.reduce_max(cam) + 1e-7)
+        
+        # Resize
+        heatmap = tf.image.resize(cam[..., tf.newaxis], 
+                                  (image.shape[0], image.shape[1])).numpy().squeeze()
+        
+        return heatmap, class_idx, confidence
+    
+    def overlay(self, image, heatmap, alpha=0.4):
+        """Overlay heatmap on image"""
+        if image.max() <= 1.0:
+            img_display = (image * 255).astype(np.uint8)
+        else:
+            img_display = image.astype(np.uint8)
+        
+        if len(img_display.shape) == 3:
+            if img_display.shape[-1] == 1:
+                img_display = img_display.squeeze()
+        
+        # Convert to 3-channel
+        if len(img_display.shape) == 2:
+            img_display = np.stack([img_display] * 3, axis=-1)
+        
+        # Apply colormap
+        colormap = plt.get_cmap('jet')
+        heatmap_colored = colormap(heatmap)[:, :, :3] * 255
+        
+        # Overlay
+        overlaid = (1 - alpha) * img_display + alpha * heatmap_colored
+        return overlaid.astype(np.uint8)
+
+def show_gradcam_samples(model, model_name, X_test, y_test, class_names, num_samples=4, save_dir=None):
+    """Show Grad-CAM for sample images"""
+    print(f"\n📊 Generating Grad-CAM for {model_name}...")
+    
+    gradcam = GradCAM(model)
+    
+    # Select samples
+    normal_idx = np.where(y_test == 0)[0][:2]
+    pneumonia_idx = np.where(y_test == 1)[0][:2]
+    sample_indices = np.concatenate([normal_idx, pneumonia_idx])
+    
+    fig, axes = plt.subplots(2, len(sample_indices), figsize=(16, 8))
+    
+    for i, idx in enumerate(sample_indices):
+        img = X_test[idx]
+        heatmap, pred_class, conf = gradcam.generate(img)
+        overlay = gradcam.overlay(img, heatmap)
+        
+        # Original
+        axes[0, i].imshow(img.squeeze(), cmap='gray')
+        true_label = class_names[y_test[idx]]
+        axes[0, i].set_title(f'True: {true_label}', fontsize=10)
+        axes[0, i].axis('off')
+        
+        # Overlay
+        axes[1, i].imshow(overlay)
+        pred_label = class_names[pred_class]
+        color = 'green' if pred_class == y_test[idx] else 'red'
+        axes[1, i].set_title(f'Pred: {pred_label}\nConf: {conf:.2f}', 
+                            fontsize=9, color=color)
+        axes[1, i].axis('off')
+    
+    plt.suptitle(f'{model_name} - Grad-CAM Visualization', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        plt.savefig(os.path.join(save_dir, f'gradcam_{model_name.lower()}.png'), 
+                   dpi=150, bbox_inches='tight')
+    plt.show()
+    print(f"✅ Grad-CAM for {model_name} complete")

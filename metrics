@@ -1,0 +1,58 @@
+"""Metrics evaluation module"""
+
+import numpy as np
+from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,
+                            confusion_matrix, roc_curve, auc, precision_recall_curve,
+                            cohen_kappa_score, matthews_corrcoef)
+
+class MetricsCalculator:
+    def calculate_all(self, y_true, y_pred, y_probs):
+        """Calculate all metrics"""
+        
+        # Basic metrics
+        metrics = {
+            'accuracy': accuracy_score(y_true, y_pred),
+            'precision': precision_score(y_true, y_pred),
+            'recall': recall_score(y_true, y_pred),
+            'f1_score': f1_score(y_true, y_pred),
+            'specificity': self.specificity_score(y_true, y_pred),
+            'kappa': cohen_kappa_score(y_true, y_pred),
+            'mcc': matthews_corrcoef(y_true, y_pred)
+        }
+        
+        # ROC and PR curves
+        fpr, tpr, _ = roc_curve(y_true, y_probs)
+        metrics['roc_auc'] = auc(fpr, tpr)
+        metrics['fpr'] = fpr.tolist()
+        metrics['tpr'] = tpr.tolist()
+        
+        precision_curve, recall_curve, _ = precision_recall_curve(y_true, y_probs)
+        metrics['pr_auc'] = auc(recall_curve, precision_curve)
+        
+        # Confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        metrics['confusion_matrix'] = cm.tolist()
+        metrics['false_positives'] = int(cm[0][1])
+        metrics['false_negatives'] = int(cm[1][0])
+        
+        return metrics
+    
+    def specificity_score(self, y_true, y_pred):
+        """Calculate specificity (true negative rate)"""
+        tn = np.sum((y_true == 0) & (y_pred == 0))
+        fp = np.sum((y_true == 0) & (y_pred == 1))
+        return tn / (tn + fp) if (tn + fp) > 0 else 0
+    
+    def print_table(self, metrics, name):
+        """Print formatted metrics table"""
+        print(f"\n{'='*60}")
+        print(f"{name} RESULTS")
+        print(f"{'='*60}")
+        print(f"Accuracy:  {metrics['accuracy']:.4f}")
+        print(f"Precision: {metrics['precision']:.4f}")
+        print(f"Recall:    {metrics['recall']:.4f}")
+        print(f"F1-Score:  {metrics['f1_score']:.4f}")
+        print(f"ROC AUC:   {metrics['roc_auc']:.4f}")
+        print(f"PR AUC:    {metrics['pr_auc']:.4f}")
+        print(f"False Negatives: {metrics['false_negatives']}")
+        print(f"False Positives: {metrics['false_positives']}")

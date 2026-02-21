@@ -1,0 +1,13 @@
+"""Ensemble module"""
+
+import numpy as np
+
+class Ensemble:
+    def __init__(self, models):
+        self.models = models
+        
+    def predict(self, X_cnn, X_vit):
+        """Average predictions from both models"""
+        cnn_pred = self.models[0].predict(X_cnn, verbose=0)
+        vit_pred = self.models[1].predict(X_vit, verbose=0)
+        return (cnn_pred + vit_pred) / 2

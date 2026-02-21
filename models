@@ -1,0 +1,54 @@
+"""Model architectures module"""
+
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+def create_cnn_model():
+    """Create CNN model"""
+    inputs = layers.Input(shape=(28, 28, 1))
+    
+    x = layers.Conv2D(32, 3, activation='relu', padding='same')(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.MaxPooling2D(2)(x)
+    x = layers.Dropout(0.25)(x)
+    
+    x = layers.Conv2D(64, 3, activation='relu', padding='same')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.MaxPooling2D(2)(x)
+    x = layers.Dropout(0.25)(x)
+    
+    x = layers.Conv2D(128, 3, activation='relu', padding='same')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dropout(0.3)(x)
+    
+    x = layers.Dense(64, activation='relu')(x)
+    x = layers.Dropout(0.3)(x)
+    outputs = layers.Dense(2, activation='softmax')(x)
+    
+    return models.Model(inputs, outputs)
+
+def create_vit_model():
+    """Create Vision Transformer model"""
+    inputs = layers.Input(shape=(28, 28, 3))
+    
+    # Patch embedding
+    x = layers.Conv2D(64, 7, strides=4, padding='same', activation='relu')(inputs)
+    x = layers.Reshape((-1, 64))(x)
+    
+    # Position embedding
+    positions = tf.range(start=0, limit=49, delta=1)
+    pos_embed = layers.Embedding(49, 64)(positions)
+    x = x + pos_embed
+    
+    # Transformer block
+    x = layers.LayerNormalization(epsilon=1e-6)(x)
+    x = layers.MultiHeadAttention(num_heads=4, key_dim=64)(x, x)
+    x = layers.GlobalAveragePooling1D()(x)
+    
+    # Classification head
+    x = layers.Dense(64, activation='relu')(x)
+    x = layers.Dropout(0.3)(x)
+    outputs = layers.Dense(2, activation='softmax')(x)
+    
+    return models.Model(inputs, outputs)
