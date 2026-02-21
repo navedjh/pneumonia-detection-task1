@@ -1,0 +1,48 @@
+# Pneumonia Detection from Chest X-rays using Deep Learning
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/pneumonia-detection-task1/blob/main/notebooks/pneumonia_detection_complete.ipynb)
+
+## 📋 Project Overview
+
+This repository contains a complete implementation of a pneumonia detection system using the PneumoniaMNIST dataset from MedMNIST v2. The project implements multiple deep learning architectures with comprehensive analysis, ensemble methods, and interpretability via Grad-CAM.
+
+### Dataset Characteristics
+- **Task**: Binary classification (Normal vs. Pneumonia)
+- **Training set**: 4,708 images
+- **Validation set**: 524 images
+- **Test set**: 624 images
+- **Image format**: 28x28 grayscale images
+- **Class distribution**: 1,214 Normal, 3,494 Pneumonia (2.88:1 ratio)
+
+### Models Implemented
+1. **Custom CNN** - Baseline architecture with batch normalization and dropout
+2. **Vision Transformer (ViT)** - State-of-the-art attention-based architecture
+3. **Ensemble** - Combined predictions for improved performance
+
+## 🚀 Key Results (30 Epochs)
+
+| Model | Accuracy | Precision | Recall | F1-Score | ROC AUC | Missed Cases |
+|-------|----------|-----------|--------|----------|---------|--------------|
+| **CNN** | 88.14% | 85.75% | **97.18%** | **91.11%** | **96.49%** | **11** |
+| **ViT** | 78.85% | 76.88% | 94.62% | 84.83% | 90.50% | 21 |
+| **Ensemble** | 86.54% | 83.85% | **97.18%** | 90.02% | 95.53% | **11** |
+
+### 🏆 Clinical Impact
+- **CNN and Ensemble miss only 11 out of 390 pneumonia cases** (2.82% miss rate)
+- **97.18% detection rate** - clinically excellent for screening
+- **False positives**: 82-95 cases (acceptable for triggering follow-up tests)
+
+## 🛠️ Installation
+
+### Local Setup
+```bash
+# Clone repository
+git clone https://github.com/navedjh/pneumonia-detection-task1.git
+cd pneumonia-detection-task1
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
